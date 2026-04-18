@@ -1,0 +1,168 @@
+"""
+Topological Fractional AI - Core Engine
+Module: solver.py
+
+Description:
+Main orchestration class. Transforms a raw 1D time-series into a 28-parameter 
+Topological Signature vector, without using gradient descent or neural networks.
+
+Pipeline:
+1. (Optional) Estimate local fractional order (Memory proxy via Hurst Exponent).
+2. Orthogonal Spectral Decomposition (Topology).
+3. Causal Coupling Matrix (Mij) Extraction.
+4. Symmetry Compression into exactly 28 independent parameters.
+
+Author: Patrice Portemann
+"""
+
+import numpy as np
+import warnings
+
+# Import core modules (Works both as standalone and as a package)
+try:
+    from .topology import TopologicalPrior, CausalSolver
+except ImportError:
+    from topology import TopologicalPrior, CausalSolver
+
+class NoeticEngine:
+    """
+    The main interface for the Topological Fractional AI engine.
+    Acts as a drop-in replacement for standard feature extraction in ML pipelines.
+    """
+    
+    def __init__(self, n_plans: int = 7, spectral_bands: dict = None):
+        """
+        Initializes the engine.
+        Args:
+            n_plans (int): Number of orthogonal spectral planes (Default 7).
+            spectral_bands (dict): Custom frequency bands. If None, uses standard Noetic bands.
+        """
+        self.n_plans = n_plans
+        self.topology = TopologicalPrior(n_plans=n_plans, spectral_bands=spectral_bands)
+        self.causal_solver = CausalSolver()
+
+    @staticmethod
+    def _estimate_fractional_order(signal: np.ndarray) -> float:
+        """
+        Proxy for the Atangana-Baleanu fractional order (alpha) using the Hurst Exponent.
+        H=0.5 -> Standard Markovian (No memory)
+        H>0.5 -> Fractional Non-Markovian (Heavy tail memory)
+        """
+        lags = range(2, min(len(signal)//2, 100))
+        tau = [np.std(np.subtract(signal[lag:], signal[:-lag])) for lag in lags]
+        poly = np.polyfit(np.log(lags), np.log(tau), 1)
+        H = poly[0]
+        # Map Hurst H [0,1] to fractional alpha [0,1]
+        return np.clip(2 * H - 1, 0.01, 0.99)
+
+    def extract_signature(self, raw_signal: np.ndarray, fs: float, 
+                          window_sec: float = 2.0, overlap: float = 0.5) -> dict:
+        """
+        Transforms a raw signal into its Topological Signature.
+        
+        Args:
+            raw_signal (np.ndarray): 1D array of raw time-series data.
+            fs (float): Sampling frequency in Hz.
+            window_sec (float): Sliding window duration in seconds.
+            overlap (float): Fraction of overlap between windows (0.0 to 1.0).
+            
+        Returns:
+            dict: Contains the 28-parameter vector, the fractional order, 
+                  and the full Mij matrix for the last window.
+        """
+        window_size = int(fs * window_sec)
+        step = int(window_size * (1 - overlap))
+        n_samples = len(raw_signal)
+        
+        signatures_28 = []
+        alphas = []
+        last_mij = None
+
+        for start in range(0, n_samples - window_size, step):
+            window = raw_signal[start : start + window_size]
+            
+            # 1. Estimate Memory (Fractional Order)
+            alpha = self._estimate_fractional_order(window)
+            alphas.append(alpha)
+            
+            # 2. Topological Decomposition
+            psi_space = self.topology.decompose(window, fs)
+            
+            # 3. Solve for Causal Matrix
+            dt = 1.0 / fs
+            mij = self.causal_solver.solve_mij(psi_space, dt)
+            last_mij = mij
+            
+            # 4. Compress to 28 independent parameters (Upper triangle)
+            features_28 = self.causal_solver.compress_to_28_features(mij)
+            signatures_28.append(features_28)
+            
+        if not signatures_28:
+            raise ValueError("Signal too short for the given window size.")
+
+        # Average the topology over time to get a robust signature
+        mean_signature_28 = np.mean(signatures_28, axis=0)
+        mean_alpha = np.mean(alphas)
+
+        return {
+            "topology_28": mean_signature_28,
+            "fractional_order": mean_alpha,
+            "last_mij_matrix": last_mij
+        }
+
+
+# ==========================================
+# STANDALONE TEST (For R&D Evaluation)
+# ==========================================
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    
+    print("="*60)
+    print("NOETIC ENGINE - STANDALONE TEST")
+    print("="*60)
+    
+    # Simulate a complex physical signal (e.g., vibration, EEG)
+    fs = 256
+    t = np.linspace(0, 10, fs * 10)
+    physical_signal = (8 * np.sin(2*np.pi*10*t) +           # E4: Alpha
+                       3 * np.sin(2*np.pi*50*t) +            # E2: Gamma
+                       1 * np.sin(2*np.pi*2*t) +             # E6: Delta
+                       np.random.normal(0, 2, len(t)))       # Noise
+    
+    # 1. Instantiate the engine (No GPU, no training required)
+    print("\n[1] Initializing Topological Engine (7 planes)...")
+    engine = NoeticEngine(n_plans=7)
+    
+    # 2. Extract the signature
+    print("[2] Extracting causal topology (Sliding window: 2s)...")
+    result = engine.extract_signature(physical_signal, fs, window_sec=2.0)
+    
+    # 3. Display Results
+    topo_28 = result["topology_28"]
+    alpha_frac = result["fractional_order"]
+    
+    print("\n[3] RESULTS:")
+    print(f"    -> Extracted exactly {len(topo_28)} independent topological parameters.")
+    print(f"    -> Estimated Fractional Order (Memory): α = {alpha_frac:.3f}")
+    if alpha_frac > 0.2:
+        print("    -> System exhibits NON-MARKOVIAN behavior (Heavy tail / Long memory).")
+    else:
+        print("    -> System exhibits standard MARKOVIAN behavior.")
+        
+    print("\n    First 5 Topological Parameters (Upper diagonal of Mij):")
+    print("    ", np.round(topo_28[:5], 4))
+    
+    # 4. Visualize the final causal map
+    plt.figure(figsize=(6, 5))
+    plt.imshow(result["last_mij_matrix"], cmap='coolwarm', aspect='auto')
+    plt.colorbar(label='Coupling Strength')
+    plt.title("Final Window: Causal State Map $M_{ij}$\nCompressed to 28 Scalar Parameters")
+    plt.xlabel("Target Plane $E_i$")
+    plt.ylabel("Source Plane $E_j$")
+    plt.xticks(range(7), ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7'])
+    plt.yticks(range(7), ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7'])
+    plt.tight_layout()
+    plt.savefig("solver_test.png", dpi=150)
+    
+    print("\n[4] Causal map saved as 'solver_test.png'.")
+    print("="*60)
