@@ -1,0 +1,12 @@
+# ==========================================
+# Topological Fractional AI - Dependencies
+# ==========================================
+
+# Core Mathematical Engine (Mandatory)
+numpy>=1.21.0          # Linear algebra & matrix operations (Mij)
+scipy>=1.8.0           # ODE solvers, lsq_linear, and Mittag-Leffler function
+
+# Proof of Concept & Evaluation (For examples/)
+matplotlib>=3.5.0      # Phase space visualization and plotting
+scikit-learn>=1.0.0    # Random Forest classifier for topology evaluation
+mne>=1.2.0             # EEG data loading, filtering, and spectral decomposition
