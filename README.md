@@ -45,7 +45,7 @@ Note: The 99,7% reduction in parameters proves that the geometric prior (M_ij) c
 5. Quick Strart (Proof of Concept)
 This engine requieres no GPU. It runs purely on CPU-based linear algebra.
 # Clone the repository
-git clone https://github.com/PORTEMANN/Topological-Fractional-AI.git
+git clone https://github.com/PORTEMANN/Topological-Fractionnal-AI.git
 cd Topological-Fractional-AI
 
 # Install dependencies
