@@ -1,22 +1,19 @@
-Copyright (c) 2026 Patrice PORTEMANN (Noetic Industries)
+TOPOLOGICAL FRACTIONAL AI — PROPRIETARY LICENSE
+Copyright (c) 2026 Patrice PORTEMANN (patrice@portemann.eu)
+Corpus histoire-des-sciences.eu
+
 All rights reserved.
 
-REDISTRIBUTION AND COMMERCIAL USE PROHIBITED
-=============================================
-This software and its associated mathematical formalisms 
-(including but not limited to topological state-space decomposition and Atangana-Baleanu fractional calculus integration) 
-are the exclusive intellectual property of Patrice PORTEMANN.
+This software and associated documentation files (the "Software") are the
+exclusive property of the author. The source code is made publicly visible
+for reading, evaluation, and academic citation ONLY.
 
-Permission is hereby granted to download, compile, and execute this software 
-STRICTLY for academic research, algorithmic evaluation, and non-commercial testing purposes.
+PERMITTED (no fee): reading, academic study, citation with attribution.
 
-You are NOT permitted to:
-1. Integrate this code, in whole or in part, into any commercial product, 
-   internal proprietary pipeline, or hardware (including but not limited to 
-   optical processors, HPC clusters, or medical devices).
-2. Distribute modified or unmodified copies of this software to third parties.
-3. Use the underlying mathematical architecture described in the code to 
-   train, infer, or solve systems without explicit written authorization.
+RESERVED to the author (require a separate written commercial license):
+any use in a product or service, any commercial use, redistribution,
+modification for distribution, sublicensing, or incorporation into
+derivative works.
 
-For licensing inquiries, commercial integration, or technology transfer:
-Contact: [contact@portemann.eu]
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+For commercial licensing: patrice@portemann.eu
